@@ -11,7 +11,7 @@ import XMonad.Hooks.ManageHelpers(doFullFloat, doCenterFloat, isFullscreen, isDi
 import XMonad.Config.Desktop
 import XMonad.Util.Run(spawnPipe)
 import XMonad.Actions.SpawnOn
-import XMonad.Util.EZConfig (additionalKeys, additionalMouseBindings)
+import XMonad.Util.EZConfig (additionalKeysP, additionalMouseBindings)
 import XMonad.Actions.CycleWS
 import XMonad.Hooks.UrgencyHook
 import qualified Codec.Binary.UTF8.String as UTF8
@@ -120,10 +120,10 @@ myMouseBindings (XConfig {XMonad.modMask = modMask}) = M.fromList $
 
 
 -- keys config
-myKeys :: String -> [([Char], X ())]
+-- myKeys :: String -> [([Char], X ())]
 myKeys =
   -- Spawn the essentials
-  [ ("M-b", spawn $ myBrowser )
+  [ ("M-b", spawn $ myBrowser)
   , ("M-e", spawn $ myEditor)
   , ("M-h", spawn $ myTerminal ++ " -e htop" )
   , ("M-t", spawn $ myTerminal )
@@ -145,6 +145,8 @@ myKeys =
   -- Windows
   , ("M-x", kill)
   , ("M-q", kill)
+  , ("M-c", nextScreen)
+  , ("M-y", prevScreen)
 
   -- Window focus for both qwerty and rsthd
   , ("M-j", windows W.focusDown)
@@ -169,22 +171,22 @@ myKeys =
   -- , ((0, xF86XK_Paste), pasteString)
 
   -- Media keys
-  , ((0, xF86XK_AudioMute), spawn $ "amixer -q set Master toggle")
-  , ((0, xF86XK_AudioLowerVolume), spawn $ "amixer -q set Master 5%-")
-  , ((0, xF86XK_AudioRaiseVolume), spawn $ "amixer -q set Master 5%+")
-  , ((0, xF86XK_MonBrightnessUp),  spawn $ "xbacklight -inc 5")
-  , ((0, xF86XK_MonBrightnessDown), spawn $ "xbacklight -dec 5")
-  , ((0, xF86XK_AudioPlay), spawn $ "playerctl play-pause")
-  , ((0, xF86XK_AudioNext), spawn $ "playerctl next")
-  , ((0, xF86XK_AudioPrev), spawn $ "playerctl previous")
-  , ((0, xF86XK_AudioStop), spawn $ "playerctl stop")
+  , ("<XF86AudioMute>", spawn $ "amixer -q set Master toggle")
+  , ("<XF86AudioLowerVolume>", spawn $ "amixer -q set Master 5%-")
+  , ("<XF86AudioRaiseVolume>", spawn $ "amixer -q set Master 5%+")
+  , ("<XF86MonBrightnessUp>",  spawn $ "xbacklight -inc 5")
+  , ("<XF86MonBrightnessDown>", spawn $ "xbacklight -dec 5")
+  , ("<XF86AudioPlay>", spawn $ "playerctl play-pause")
+  , ("<XF86AudioNext>", spawn $ "playerctl next")
+  , ("<XF86AudioPrev>", spawn $ "playerctl previous")
+  , ("<XF86AudioStop>", spawn $ "playerctl stop")
 
   ---------------------------------------------------------
   -- LEADER KEY SEQUENCES
   -- Window actions => <leader> w -
   , ("M-g w s", withFocused $ windows . W.sink)
-  , ("M-g w t", sendMessage (IncMasterN 1))
-  , ("M-g w t", sendMessage (IncMasterN (-1)))
+  , ("M-g w i", sendMessage (IncMasterN 1))
+  , ("M-g w r", sendMessage (IncMasterN (-1)))
   -- Setting apps => <leader> s -
   , ("M-g s t", spawn $ "arcolinux-tweak-tool")
   , ("M-g s m", spawn $ "xfce4-settings-manager")
@@ -199,38 +201,16 @@ myKeys =
   , ("M-g t p", spawn $ "$HOME/.xmonad/scripts/picom-toggle.sh")
 
   --SCREENSHOTS
-  , ((0, xK_Print), spawn $ "flameshot gui")
-  , ((controlMask, xK_Print), spawn $ "escrotum -C -s" )
-  , ((controlMask .|. shiftMask , xK_Print ), spawn $ "escrotum -C -s")
-
-
-
+  , ("<Print>", spawn $ "flameshot gui")
+  , ("C-<Print>", spawn $ "escrotum -C -s" )
+  , ("C-S-<Print>", spawn $ "escrotum -C -s" )
   ]
   ++
-
   -- mod-[1..9], Switch to workspace N
-  -- mod-shift-[1..9], Move client to workspace N
-  [((m .|. modMask, k), windows $ f i)
-
-  --Keyboard layouts
-  --qwerty users use this line
-   | (i, k) <- zip (XMonad.workspaces conf) [xK_1,xK_2,xK_3,xK_4,xK_5,xK_6,xK_7,xK_8,xK_9,xK_0]
-
-  --French Azerty users use this line
-  -- | (i, k) <- zip (XMonad.workspaces conf) [xK_ampersand, xK_eacute, xK_quotedbl, xK_apostrophe, xK_parenleft, xK_minus, xK_egrave, xK_underscore, xK_ccedilla , xK_agrave]
-
-  --Belgian Azerty users use this line
-  -- | (i, k) <- zip (XMonad.workspaces conf) [xK_ampersand, xK_eacute, xK_quotedbl, xK_apostrophe, xK_parenleft, xK_section, xK_egrave, xK_exclam, xK_ccedilla, xK_agrave]
-
-      , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)
-      , (\i -> W.greedyView i . W.shift i, shiftMask)]]
-
-  ++
-  -- ctrl-{w,e,r}, Switch to physical/Xinerama screens 1, 2, or 3
-  -- ctrl-shift-{w,e,r}, Move client to screen 1, 2, or 3
-  [((m .|. modMask, key), screenWorkspace sc >>= flip whenJust (windows . f))
-      | (key, sc) <- zip [xK_c, xK_y] [0..]
-      , (f, m) <- [(W.view, 0), (W.shift, shiftMask)]]
+  -- mod-ctrl-[1..9], Move client to workspace N
+  [("M-" ++ m ++ k, windows $ f i)
+   | (i, k) <- zip myWorkspaces ["1","2","3","4","5","6","7","8","9","0"]
+      , (f, m) <- [(W.greedyView, ""), (W.shift, "C-")]]
 
 -- Xmobar config
 myLogPP :: DLog.PP
@@ -258,13 +238,9 @@ main = do
     D.requestName dbus (D.busName_ "org.xmonad.Log")
         [D.nameAllowReplacement, D.nameReplaceExisting, D.nameDoNotQueue]
 
-    -- xmproc0 <- spawnPipe "xmobar"
     xmonad . ewmh $
-  --Keyboard layouts
-  --qwerty users use this line
       myBaseConfig
-
-        {startupHook = myStartupHook
+        { startupHook = myStartupHook
         , layoutHook = gaps [(U,35), (D,5), (R,5), (L,5)] $ myLayout ||| layoutHook myBaseConfig
         , logHook = Bars.multiPP myLogPP myLogPP
         , manageHook = ( isFullscreen --> doFullFloat ) <+> manageSpawn <+> myManageHook <+> manageHook myBaseConfig
@@ -276,6 +252,6 @@ main = do
         , workspaces = myWorkspaces
         , focusedBorderColor = focdBord
         , normalBorderColor = normBord
-        , keys = myKeys
+        -- , keys = myKeys
         , mouseBindings = myMouseBindings
-}
+        } `additionalKeysP` myKeys
