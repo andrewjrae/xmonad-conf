@@ -106,21 +106,16 @@ myLayout = spacingRaw True (Border 0 5 5 5) True (Border 5 5 5 5) True $ avoidSt
 
 
 myMouseBindings (XConfig {XMonad.modMask = modMask}) = M.fromList $
-
     -- mod-button1, Set the window to floating mode and move by dragging
     [ ((modMask, 1), (\w -> focus w >> mouseMoveWindow w >> windows W.shiftMaster))
-
     -- mod-button2, Raise the window to the top of the stack
     , ((modMask, 2), (\w -> focus w >> windows W.shiftMaster))
-
     -- mod-button3, Set the window to floating mode and resize by dragging
     , ((modMask, 3), (\w -> focus w >> mouseResizeWindow w >> windows W.shiftMaster))
-
     ]
 
 
 -- keys config
--- myKeys :: String -> [([Char], X ())]
 myKeys =
   -- Spawn the essentials
   [ ("M-b", spawn $ myBrowser)
@@ -198,6 +193,7 @@ myKeys =
   , ("M-g o m", spawn $ "pamac-manager")
   , ("M-g o s", spawn $ "spotify")
   -- Toggles => <leader> t -
+  , ("M-g t m", spawn $ "amixer set Capture toggle")
   , ("M-g t p", spawn $ "$HOME/.xmonad/scripts/picom-toggle.sh")
 
   --SCREENSHOTS
@@ -252,6 +248,5 @@ main = do
         , workspaces = myWorkspaces
         , focusedBorderColor = focdBord
         , normalBorderColor = normBord
-        -- , keys = myKeys
         , mouseBindings = myMouseBindings
         } `additionalKeysP` myKeys
