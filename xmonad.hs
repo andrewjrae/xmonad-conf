@@ -182,8 +182,8 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
   --MULTIMEDIA KEYS
 
   -- Copy and paste
-  , ((0, xF86XK_Copy), copyString)
-  , ((0, xF86XK_Paste), pasteString)
+  -- , ((0, xF86XK_Copy), copyString)
+  -- , ((0, xF86XK_Paste), pasteString)
 
   -- Mute volume
   , ((0, xF86XK_AudioMute), spawn $ "amixer -q set Master toggle")
