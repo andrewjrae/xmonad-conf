@@ -127,6 +127,7 @@ myKeys =
 
   -- Rofi
   , ("M-r", spawn $ "rofi -show run" )
+  , ("M-s", spawn $ "rofi -show ssh" )
   , ("M-w", spawn $ "rofi -show window" )
 
   -- Xmonad
@@ -181,11 +182,12 @@ myKeys =
   -- Window actions => <leader> w -
   , ("M-g w s", withFocused $ windows . W.sink)
   , ("M-g w i", sendMessage (IncMasterN 1))
-  , ("M-g w r", sendMessage (IncMasterN (-1)))
+  , ("M-g w d", sendMessage (IncMasterN (-1)))
   -- Setting apps => <leader> s -
   , ("M-g s t", spawn $ "arcolinux-tweak-tool")
   , ("M-g s m", spawn $ "xfce4-settings-manager")
   -- Open generic apps => <leader> o -
+  , ("M-g o d", spawn $ "discord --no-sandbox")
   , ("M-g o t", spawn $ "thunar")
   , ("M-g o f", spawn $ "firefox")
   , ("M-g o g", spawn $ "google-chrome-stable")
