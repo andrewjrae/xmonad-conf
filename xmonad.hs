@@ -11,7 +11,7 @@ import XMonad.Hooks.ManageHelpers(doFullFloat, doCenterFloat, isFullscreen, isDi
 import XMonad.Config.Desktop
 import XMonad.Util.Run(spawnPipe)
 import XMonad.Actions.SpawnOn
-import XMonad.Util.EZConfig (additionalKeys, additionalMouseBindings)
+import XMonad.Util.EZConfig (additionalKeysP, additionalMouseBindings)
 import XMonad.Actions.CycleWS
 import XMonad.Hooks.UrgencyHook
 import qualified Codec.Binary.UTF8.String as UTF8
@@ -19,7 +19,7 @@ import qualified Codec.Binary.UTF8.String as UTF8
 import XMonad.Layout.Spacing
 import XMonad.Layout.Gaps
 import XMonad.Layout.ResizableTile
----import XMonad.Layout.NoBorders
+import XMonad.Layout.NoBorders
 import XMonad.Layout.Fullscreen (fullscreenFull)
 import XMonad.Layout.Cross(simpleCross)
 import XMonad.Layout.Spiral(spiral)
@@ -63,6 +63,9 @@ myTerminal = "alacritty"
 myEditor :: String
 myEditor = "emacsclient -c -a emacs"
 
+myBrowser :: String
+myBrowser = "google-chrome-stable"
+
 myModMask :: KeyMask
 myModMask = mod4Mask
 
@@ -94,7 +97,7 @@ myManageHook = composeAll . concat $
 
 
 
-myLayout = spacingRaw True (Border 0 5 5 5) True (Border 5 5 5 5) True $ avoidStruts $ mkToggle (NBFULL ?? NOBORDERS ?? EOT) $ tiled ||| Mirror tiled ||| spiral (6/7)  ||| ThreeColMid 1 (3/100) (1/2) ||| Full
+myLayout = spacingRaw True (Border 0 5 5 5) True (Border 5 5 5 5) True $ smartBorders $ avoidStruts $ mkToggle (NBFULL ?? NOBORDERS ?? EOT) $ tiled ||| Mirror tiled ||| ThreeColMid 1 (3/100) (1/2)
     where
         tiled = Tall nmaster delta tiled_ratio
         nmaster = 1
@@ -103,198 +106,109 @@ myLayout = spacingRaw True (Border 0 5 5 5) True (Border 5 5 5 5) True $ avoidSt
 
 
 myMouseBindings (XConfig {XMonad.modMask = modMask}) = M.fromList $
-
     -- mod-button1, Set the window to floating mode and move by dragging
     [ ((modMask, 1), (\w -> focus w >> mouseMoveWindow w >> windows W.shiftMaster))
-
     -- mod-button2, Raise the window to the top of the stack
     , ((modMask, 2), (\w -> focus w >> windows W.shiftMaster))
-
     -- mod-button3, Set the window to floating mode and resize by dragging
     , ((modMask, 3), (\w -> focus w >> mouseResizeWindow w >> windows W.shiftMaster))
-
     ]
 
 
 -- keys config
+myKeys =
+  -- Spawn the essentials
+  [ ("M-b", spawn $ myBrowser)
+  , ("M-e", spawn $ myEditor)
+  , ("M-h", spawn $ myTerminal ++ " -e htop" )
+  , ("M-t", spawn $ myTerminal )
+  , ("M-v", spawn $ "pavucontrol" )
+  , ("M-u", spawn $ "arcolinux-logout" )
 
-myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
-  ----------------------------------------------------------------------
-  -- SUPER + FUNCTION KEYS
+  -- Rofi
+  , ("M-r", spawn $ "rofi -show run" )
+  , ("M-s", spawn $ "rofi -show ssh" )
+  , ("M-w", spawn $ "rofi -show window" )
 
-  [ ((modMask, xK_e), spawn $ myEditor)
-  , ((modMask, xK_f), sendMessage $ Toggle NBFULL)
-  , ((modMask, xK_h), spawn $ myTerminal ++ " 'htop task manager' -e htop" )
-  , ((modMask, xK_q), kill )
-  , ((modMask, xK_r), spawn $ "rofi -show run" )
-  , ((modMask, xK_w), spawn $ "rofi -show window" )
-  -- , ((modMask, xK_r), spawn $ "dmenu_run -i -nb '#191919' -nf '#fea63c' -sb '#fea63c' -sf '#191919' -fn 'NotoMonoRegular:bold:pixelsize=14'" )
-  , ((modMask, xK_t), spawn $ myTerminal )
-  , ((modMask, xK_v), spawn $ "pavucontrol" )
-  , ((modMask, xK_u), spawn $ "arcolinux-logout" )
-  , ((modMask, xK_x), kill )
-  , ((modMask, xK_Escape), spawn $ "xkill" )
-  , ((modMask, xK_Return), spawn $ myTerminal )
+  -- Xmonad
+  , ("M-S-r", spawn $ "xmonad --recompile && xmonad --restart")
 
-  -- SUPER + SHIFT KEYS
+  -- Layouts
+  , ("M-<Space>", sendMessage NextLayout)
+  , ("M-f", sendMessage $ Toggle NBFULL)
+  -- , ((modMask .|. shiftMask, xK_space), setLayout $ XMonad.layoutHook conf)
 
-  , ((modMask .|. shiftMask , xK_Return ), spawn $ "thunar")
-  , ((modMask .|. shiftMask , xK_d ), spawn $ "dmenu_run -i -nb '#191919' -nf '#fea63c' -sb '#fea63c' -sf '#191919' -fn 'NotoMonoRegular:bold:pixelsize=14'")
-  , ((modMask .|. shiftMask , xK_r ), spawn $ "xmonad --recompile && xmonad --restart")
-  , ((modMask .|. shiftMask , xK_q ), kill)
-  -- , ((modMask .|. shiftMask , xK_x ), io (exitWith ExitSuccess))
+  -- Windows
+  , ("M-x", kill)
+  , ("M-q", kill)
+  , ("M-c", nextScreen)
+  , ("M-y", prevScreen)
 
-  -- CONTROL + ALT KEYS
+  -- Window focus for both qwerty and rsthd
+  , ("M-j", windows W.focusDown)
+  , ("M-n", windows W.focusDown)
+  , ("M-k", windows W.focusUp)
+  , ("M-a", windows W.focusUp)
+  , ("M-m", windows W.focusMaster)
 
-  , ((controlMask .|. mod1Mask , xK_a ), spawn $ "xfce4-appfinder")
-  , ((controlMask .|. mod1Mask , xK_b ), spawn $ "thunar")
-  , ((controlMask .|. mod1Mask , xK_e ), spawn $ "arcolinux-tweak-tool")
-  , ((controlMask .|. mod1Mask , xK_f ), spawn $ "firefox")
-  , ((controlMask .|. mod1Mask , xK_g ), spawn $ "google-chrome-stable")
-  , ((controlMask .|. mod1Mask , xK_i ), spawn $ "nitrogen")
-  , ((controlMask .|. mod1Mask , xK_k ), spawn $ "arcolinux-logout")
-  , ((controlMask .|. mod1Mask , xK_l ), spawn $ "arcolinux-logout")
-  , ((controlMask .|. mod1Mask , xK_m ), spawn $ "xfce4-settings-manager")
-  , ((controlMask .|. mod1Mask , xK_o ), spawn $ "$HOME/.xmonad/scripts/picom-toggle.sh")
-  , ((controlMask .|. mod1Mask , xK_p ), spawn $ "pamac-manager")
-  , ((controlMask .|. mod1Mask , xK_r ), spawn $ "rofi-theme-selector")
-  , ((controlMask .|. mod1Mask , xK_s ), spawn $ "spotify")
-  , ((controlMask .|. mod1Mask , xK_t ), spawn $ myTerminal)
-  , ((controlMask .|. mod1Mask , xK_u ), spawn $ "pavucontrol")
-  , ((controlMask .|. mod1Mask , xK_v ), spawn $ "vivaldi-stable")
-  , ((controlMask .|. mod1Mask , xK_w ), spawn $ "arcolinux-welcome-app")
+  -- Window swapping for both qwerty and rsthd
+  , ("M-S-j", windows W.swapDown)
+  , ("M-S-n", windows W.swapDown)
+  , ("M-S-k", windows W.swapUp)
+  , ("M-S-a", windows W.swapUp)
+  , ("M-S-m", windows W.swapMaster)
 
-  -- ALT + ... KEYS
-
-  , ((mod1Mask, xK_r), spawn $ "xmonad --restart" )
-
-  --CONTROL + SHIFT KEYS
-
-  , ((controlMask .|. shiftMask , xK_Escape ), spawn $ "xfce4-taskmanager")
-
-  --SCREENSHOTS
-
-  , ((0, xK_Print), spawn $ "flameshot gui")
-  , ((controlMask, xK_Print), spawn $ "escrotum -C -s" )
-  , ((controlMask .|. shiftMask , xK_Print ), spawn $ "escrotum -C -s")
-
-
-  --MULTIMEDIA KEYS
+  -- Change window size
+  , ("M-l", sendMessage Shrink)
+  , ("M-i", sendMessage Expand)
 
   -- Copy and paste
   -- , ((0, xF86XK_Copy), copyString)
   -- , ((0, xF86XK_Paste), pasteString)
 
-  -- Mute volume
-  , ((0, xF86XK_AudioMute), spawn $ "amixer -q set Master toggle")
+  -- Media keys
+  , ("<XF86AudioMute>", spawn $ "amixer -q set Master toggle")
+  , ("<XF86AudioLowerVolume>", spawn $ "amixer -q set Master 5%-")
+  , ("<XF86AudioRaiseVolume>", spawn $ "amixer -q set Master 5%+")
+  , ("<XF86MonBrightnessUp>",  spawn $ "xbacklight -inc 5")
+  , ("<XF86MonBrightnessDown>", spawn $ "xbacklight -dec 5")
+  , ("<XF86AudioPlay>", spawn $ "playerctl play-pause")
+  , ("<XF86AudioNext>", spawn $ "playerctl next")
+  , ("<XF86AudioPrev>", spawn $ "playerctl previous")
+  , ("<XF86AudioStop>", spawn $ "playerctl stop")
 
-  -- Decrease volume
-  , ((0, xF86XK_AudioLowerVolume), spawn $ "amixer -q set Master 5%-")
+  ---------------------------------------------------------
+  -- LEADER KEY SEQUENCES
+  -- Window actions => <leader> w -
+  , ("M-g w s", withFocused $ windows . W.sink)
+  , ("M-g w i", sendMessage (IncMasterN 1))
+  , ("M-g w d", sendMessage (IncMasterN (-1)))
+  -- Setting apps => <leader> s -
+  , ("M-g s t", spawn $ "arcolinux-tweak-tool")
+  , ("M-g s m", spawn $ "xfce4-settings-manager")
+  -- Open generic apps => <leader> o -
+  , ("M-g o d", spawn $ "discord --no-sandbox")
+  , ("M-g o t", spawn $ "thunar")
+  , ("M-g o f", spawn $ "firefox")
+  , ("M-g o g", spawn $ "google-chrome-stable")
+  , ("M-g o n", spawn $ "nitrogen")
+  , ("M-g o m", spawn $ "pamac-manager")
+  , ("M-g o s", spawn $ "spotify")
+  -- Toggles => <leader> t -
+  , ("M-g t m", spawn $ "amixer set Capture toggle")
+  , ("M-g t p", spawn $ "$HOME/.xmonad/scripts/picom-toggle.sh")
 
-  -- Increase volume
-  , ((0, xF86XK_AudioRaiseVolume), spawn $ "amixer -q set Master 5%+")
-
-  -- Increase brightness
-  , ((0, xF86XK_MonBrightnessUp),  spawn $ "xbacklight -inc 5")
-
-  -- Decrease brightness
-  , ((0, xF86XK_MonBrightnessDown), spawn $ "xbacklight -dec 5")
-
-  , ((0, xF86XK_AudioPlay), spawn $ "playerctl play-pause")
-  , ((0, xF86XK_AudioNext), spawn $ "playerctl next")
-  , ((0, xF86XK_AudioPrev), spawn $ "playerctl previous")
-  , ((0, xF86XK_AudioStop), spawn $ "playerctl stop")
-
-
-  --------------------------------------------------------------------
-  --  XMONAD LAYOUT KEYS
-
-  -- Cycle through the available layout algorithms.
-  , ((modMask, xK_space), sendMessage NextLayout)
-
-  -- --Focus selected desktop
-  -- , ((mod1Mask, xK_Tab), nextWS)
-
-  -- --Focus selected desktop
-  -- , ((modMask, xK_Tab), nextWS)
-
-  --Focus selected desktop
-  , ((controlMask .|. modMask , xK_Left ), prevWS)
-
-  --Focus selected desktop
-  , ((controlMask .|. modMask , xK_Right ), nextWS)
-
-  --  Reset the layouts on the current workspace to default.
-  , ((modMask .|. shiftMask, xK_space), setLayout $ XMonad.layoutHook conf)
-
-  -- Move focus to the next window.
-  , ((modMask, xK_j), windows W.focusDown)
-
-  -- Move focus to the next window.
-  , ((modMask, xK_n), windows W.focusDown)
-
-  -- Move focus to the previous window.
-  , ((modMask, xK_k), windows W.focusUp  )
-
-  -- Move focus to the previous window.
-  , ((modMask, xK_a), windows W.focusUp  )
-
-  -- Move focus to the master window.
-  , ((modMask .|. shiftMask, xK_m), windows W.focusMaster  )
-
-  -- Swap the focused window with the next window.
-  , ((modMask .|. shiftMask, xK_j), windows W.swapDown  )
-
-  -- Swap the focused window with the next window.
-  , ((controlMask .|. modMask, xK_Down), windows W.swapDown  )
-
-  -- Swap the focused window with the previous window.
-  , ((modMask .|. shiftMask, xK_k), windows W.swapUp    )
-
-  -- Swap the focused window with the previous window.
-  , ((controlMask .|. modMask, xK_Up), windows W.swapUp  )
-
-  -- Shrink the master area.
-  , ((controlMask .|. shiftMask , xK_h), sendMessage Shrink)
-
-  -- Expand the master area.
-  , ((controlMask .|. shiftMask , xK_l), sendMessage Expand)
-
-  -- Push window back into tiling.
-  , ((controlMask .|. shiftMask , xK_t), withFocused $ windows . W.sink)
-
-  -- Increment the number of windows in the master area.
-  , ((controlMask .|. modMask, xK_Left), sendMessage (IncMasterN 1))
-
-  -- Decrement the number of windows in the master area.
-  , ((controlMask .|. modMask, xK_Right), sendMessage (IncMasterN (-1)))
-
+  --SCREENSHOTS
+  , ("<Print>", spawn $ "flameshot gui")
+  , ("C-<Print>", spawn $ "escrotum -C -s" )
+  , ("C-S-<Print>", spawn $ "escrotum -C -s" )
   ]
   ++
-
   -- mod-[1..9], Switch to workspace N
-  -- mod-shift-[1..9], Move client to workspace N
-  [((m .|. modMask, k), windows $ f i)
-
-  --Keyboard layouts
-  --qwerty users use this line
-   | (i, k) <- zip (XMonad.workspaces conf) [xK_1,xK_2,xK_3,xK_4,xK_5,xK_6,xK_7,xK_8,xK_9,xK_0]
-
-  --French Azerty users use this line
-  -- | (i, k) <- zip (XMonad.workspaces conf) [xK_ampersand, xK_eacute, xK_quotedbl, xK_apostrophe, xK_parenleft, xK_minus, xK_egrave, xK_underscore, xK_ccedilla , xK_agrave]
-
-  --Belgian Azerty users use this line
-  -- | (i, k) <- zip (XMonad.workspaces conf) [xK_ampersand, xK_eacute, xK_quotedbl, xK_apostrophe, xK_parenleft, xK_section, xK_egrave, xK_exclam, xK_ccedilla, xK_agrave]
-
-      , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)
-      , (\i -> W.greedyView i . W.shift i, shiftMask)]]
-
-  ++
-  -- ctrl-{w,e,r}, Switch to physical/Xinerama screens 1, 2, or 3
-  -- ctrl-shift-{w,e,r}, Move client to screen 1, 2, or 3
-  [((m .|. modMask, key), screenWorkspace sc >>= flip whenJust (windows . f))
-      | (key, sc) <- zip [xK_c, xK_y] [0..]
-      , (f, m) <- [(W.view, 0), (W.shift, shiftMask)]]
+  -- mod-ctrl-[1..9], Move client to workspace N
+  [("M-" ++ m ++ k, windows $ f i)
+   | (i, k) <- zip myWorkspaces ["1","2","3","4","5","6","7","8","9","0"]
+      , (f, m) <- [(W.greedyView, ""), (W.shift, "C-")]]
 
 -- Xmobar config
 myLogPP :: DLog.PP
@@ -322,13 +236,9 @@ main = do
     D.requestName dbus (D.busName_ "org.xmonad.Log")
         [D.nameAllowReplacement, D.nameReplaceExisting, D.nameDoNotQueue]
 
-    -- xmproc0 <- spawnPipe "xmobar"
     xmonad . ewmh $
-  --Keyboard layouts
-  --qwerty users use this line
       myBaseConfig
-
-        {startupHook = myStartupHook
+        { startupHook = myStartupHook
         , layoutHook = gaps [(U,35), (D,5), (R,5), (L,5)] $ myLayout ||| layoutHook myBaseConfig
         , logHook = Bars.multiPP myLogPP myLogPP
         , manageHook = ( isFullscreen --> doFullFloat ) <+> manageSpawn <+> myManageHook <+> manageHook myBaseConfig
@@ -340,6 +250,5 @@ main = do
         , workspaces = myWorkspaces
         , focusedBorderColor = focdBord
         , normalBorderColor = normBord
-        , keys = myKeys
         , mouseBindings = myMouseBindings
-}
+        } `additionalKeysP` myKeys
