@@ -89,7 +89,7 @@ myManageHook = composeAll . concat $
     ]
     where
     -- doShiftAndGo = doF . liftM2 (.) W.greedyView W.shift
-    myCFloats = ["Arandr", "Arcolinux-tweak-tool.py", "Arcolinux-welcome-app.py", "Galculator", "feh", "mpv", "Xfce4-terminal"]
+    myCFloats = ["Arandr", "Arcolinux-tweak-tool.py", "Arcolinux-welcome-app.py", "feh", "mpv", "Xfce4-terminal"]
     myTFloats = ["Downloads", "Save As..."]
     myRFloats = []
     myIgnores = ["desktop_window"]
@@ -97,7 +97,7 @@ myManageHook = composeAll . concat $
 
 
 
-myLayout = spacingRaw True (Border 0 5 5 5) True (Border 5 5 5 5) True $ smartBorders $ avoidStruts $ mkToggle (NBFULL ?? NOBORDERS ?? EOT) $ tiled ||| Mirror tiled ||| ThreeColMid 1 (3/100) (1/2)
+myLayout = spacingRaw True (Border 5 5 5 5) True (Border 5 5 5 5) True $ smartBorders $ avoidStruts $ mkToggle (NBFULL ?? NOBORDERS ?? EOT) $ tiled ||| Mirror tiled ||| ThreeColMid 1 (3/100) (1/2)
     where
         tiled = Tall nmaster delta tiled_ratio
         nmaster = 1
@@ -128,7 +128,7 @@ myKeys =
   -- Rofi
   , ("M-r", spawn $ "rofi -show run" )
   , ("M-s", spawn $ "rofi -show ssh" )
-  , ("M-w", spawn $ "rofi -show window" )
+  , ("M-w", spawn $ "rofi -show window -config ~/.config/rofi/themes/center.rasi" )
 
   -- Xmonad
   , ("M-S-r", spawn $ "xmonad --recompile && xmonad --restart")
@@ -136,7 +136,6 @@ myKeys =
   -- Layouts
   , ("M-<Space>", sendMessage NextLayout)
   , ("M-f", sendMessage $ Toggle NBFULL)
-  -- , ((modMask .|. shiftMask, xK_space), setLayout $ XMonad.layoutHook conf)
 
   -- Windows
   , ("M-x", kill)
@@ -239,7 +238,7 @@ main = do
     xmonad . ewmh $
       myBaseConfig
         { startupHook = myStartupHook
-        , layoutHook = gaps [(U,35), (D,5), (R,5), (L,5)] $ myLayout ||| layoutHook myBaseConfig
+        , layoutHook = gaps [(U,30), (D,0), (R,0), (L,0)] $ myLayout ||| layoutHook myBaseConfig
         , logHook = Bars.multiPP myLogPP myLogPP
         , manageHook = ( isFullscreen --> doFullFloat ) <+> manageSpawn <+> myManageHook <+> manageHook myBaseConfig
         , modMask = myModMask
