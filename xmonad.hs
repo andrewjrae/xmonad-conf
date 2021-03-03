@@ -10,6 +10,7 @@ import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageHelpers(doFullFloat, doCenterFloat, isFullscreen, isDialog)
 import XMonad.Config.Desktop
 import XMonad.Util.Run(spawnPipe)
+import XMonad.Util.Paste(sendKey)
 import XMonad.Actions.SpawnOn
 import XMonad.Util.EZConfig (additionalKeysP, additionalMouseBindings)
 import XMonad.Actions.CycleWS
@@ -75,6 +76,7 @@ myFocusFollowsMouse = False
 myBorderWidth :: Dimension
 myBorderWidth = 2
 
+myWorkspaces :: [ String ]
 myWorkspaces    = ["1","2","3","4","5","6","7","8","9","10"]
 
 myBaseConfig = desktopConfig
@@ -113,7 +115,6 @@ myMouseBindings (XConfig {XMonad.modMask = modMask}) = M.fromList $
     -- mod-button3, Set the window to floating mode and resize by dragging
     , ((modMask, 3), (\w -> focus w >> mouseResizeWindow w >> windows W.shiftMaster))
     ]
-
 
 -- keys config
 myKeys =
@@ -161,10 +162,6 @@ myKeys =
   , ("M-l", sendMessage Shrink)
   , ("M-i", sendMessage Expand)
 
-  -- Copy and paste
-  -- , ((0, xF86XK_Copy), copyString)
-  -- , ((0, xF86XK_Paste), pasteString)
-
   -- Media keys
   , ("<XF86AudioMute>", spawn $ "amixer -q set Master toggle")
   , ("<XF86AudioLowerVolume>", spawn $ "amixer -q set Master 5%-")
@@ -208,6 +205,34 @@ myKeys =
   [("M-" ++ m ++ k, windows $ f i)
    | (i, k) <- zip myWorkspaces ["1","2","3","4","5","6","7","8","9","0"]
       , (f, m) <- [(W.greedyView, ""), (W.shift, "C-")]]
+  ++
+  -- Copy and paste
+  [ ("<XF86Copy>", clipboardCopy)
+  , ("<XF86Paste>", clipboardPaste)]
+  where
+    clipboardCopy :: X ()
+    clipboardCopy =
+      withFocused $ \w -> do
+        b <- usesClipKeys w
+        if b
+          then (sendKey noModMask xF86XK_Copy)
+          else (sendKey controlMask xK_c)
+
+    clipboardPaste :: X ()
+    clipboardPaste =
+      withFocused $ \w -> do
+        b <- usesClipKeys w
+        if b
+          then (sendKey noModMask xF86XK_Paste)
+          else (sendKey controlMask xK_v)
+
+    usesClipKeys :: Window -> X Bool
+    usesClipKeys =
+      fmap (\n -> elem n clipKeyApps) . runQuery className
+
+    clipKeyApps :: [ String ]
+    clipKeyApps = [ "Alacritty", "Emacs" ]
+
 
 -- Xmobar config
 myLogPP :: DLog.PP
