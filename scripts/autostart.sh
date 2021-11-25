@@ -14,13 +14,18 @@ function run {
 #cursor active at boot
 xsetroot -cursor_name left_ptr &
 
+# update monitors
+autorandr --change
+
 #starting utility applications at boot time
-run nm-applet &
-run pamac-tray &
-run xfce4-power-manager &
-run volumeicon &
-numlockx on &
-blueberry-tray &
+/etc/local/scripts/polybar_launch.sh
+# run nm-applet &
+# run pamac-tray &
+# run xfce4-power-manager &
+# run volumeicon &
+# numlockx on &
+# blueberry-tray &
+run unclutter &
 picom --config $HOME/.xmonad/scripts/picom.conf &
 /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
 /usr/lib/xfce4/notifyd/xfce4-notifyd &

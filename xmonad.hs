@@ -3,8 +3,8 @@ import System.Exit
 
 import XMonad
 import XMonad.Hooks.SetWMName
-import qualified XMonad.Hooks.DynamicLog as DLog
-import qualified XMonad.Hooks.DynamicBars as Bars
+-- import qualified XMonad.Hooks.DynamicLog as DLog
+-- import qualified XMonad.Hooks.DynamicBars as Bars
 import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageHelpers(doFullFloat, doCenterFloat, isFullscreen, isDialog)
@@ -16,12 +16,13 @@ import XMonad.Util.EZConfig (additionalKeysP, additionalMouseBindings)
 import XMonad.Actions.CycleWS
 import XMonad.Hooks.UrgencyHook
 import qualified Codec.Binary.UTF8.String as UTF8
+import XMonad.Actions.UpdatePointer
 
 import XMonad.Layout.Spacing
 import XMonad.Layout.Gaps
 import XMonad.Layout.ResizableTile
 import XMonad.Layout.NoBorders
-import XMonad.Layout.Fullscreen (fullscreenFull)
+import XMonad.Layout.Fullscreen (fullscreenFull, FullscreenMessage (AddFullscreen))
 import XMonad.Layout.Cross(simpleCross)
 import XMonad.Layout.Spiral(spiral)
 import XMonad.Layout.ThreeColumns
@@ -44,14 +45,14 @@ import qualified DBus.Client as D
 myStartupHook = do
     spawn "$HOME/.xmonad/scripts/autostart.sh"
     setWMName "LG3D"
-    Bars.dynStatusBarStartup barCreator barDestroyer
+    -- Bars.dynStatusBarStartup barCreator barDestroyer
 
 -- colours
 normBord :: String
 normBord = "#4c566a"
 
 focdBord :: String
-focdBord = "#5e81ac"
+focdBord = "#c678dd"
 
 --mod4Mask= super key
 --mod1Mask= alt key
@@ -65,19 +66,19 @@ myEditor :: String
 myEditor = "emacsclient -c -a emacs"
 
 myBrowser :: String
-myBrowser = "google-chrome-stable"
+myBrowser = "brave"
 
 myModMask :: KeyMask
 myModMask = mod4Mask
 
 myFocusFollowsMouse :: Bool
-myFocusFollowsMouse = False
+myFocusFollowsMouse = True
 
 myBorderWidth :: Dimension
-myBorderWidth = 2
+myBorderWidth = 3
 
 myWorkspaces :: [ String ]
-myWorkspaces    = ["1","2","3","4","5","6","7","8","9","10"]
+myWorkspaces    = ["1","2","3","4","5","6","7","8","9"]
 
 myBaseConfig = desktopConfig
 
@@ -91,7 +92,7 @@ myManageHook = composeAll . concat $
     ]
     where
     -- doShiftAndGo = doF . liftM2 (.) W.greedyView W.shift
-    myCFloats = ["Arandr", "Arcolinux-tweak-tool.py", "Arcolinux-welcome-app.py", "feh", "mpv", "Xfce4-terminal"]
+    myCFloats = ["Arandr", "Arcolinux-tweak-tool.py", "Arcolinux-welcome-app.py", "Fsearch", "feh", "mpv", "Xfce4-terminal"]
     myTFloats = ["Downloads", "Save As..."]
     myRFloats = []
     myIgnores = ["desktop_window"]
@@ -99,48 +100,67 @@ myManageHook = composeAll . concat $
 
 
 
-myLayout = spacingRaw True (Border 5 5 5 5) True (Border 5 5 5 5) True $ smartBorders $ avoidStruts $ mkToggle (NBFULL ?? NOBORDERS ?? EOT) $ tiled ||| Mirror tiled ||| ThreeColMid 1 (3/100) (1/2)
+myLayout = spacingRaw True (Border 4 4 4 4) True (Border 4 4 4 4) True
+  $ smartBorders $ avoidStruts
+  $ mkToggle (NBFULL ?? NOBORDERS ?? EOT)
+  $ tiled ||| ThreeColMid 1 (3/100) (1/2)
     where
         tiled = Tall nmaster delta tiled_ratio
         nmaster = 1
         delta = 3/100
         tiled_ratio = 1/2
 
+toggleFull = withFocused (\windowId -> do
+    { floats <- gets (W.floating . windowset);
+        if windowId `M.member` floats
+        then withFocused $ windows . W.sink
+        else withFocused $ windows . flip W.float (W.RationalRect 0 0 1 1) })
 
-myMouseBindings (XConfig {XMonad.modMask = modMask}) = M.fromList $
+myMouseBindings (XConfig {XMonad.modMask = modMask}) = M.fromList
     -- mod-button1, Set the window to floating mode and move by dragging
-    [ ((modMask, 1), (\w -> focus w >> mouseMoveWindow w >> windows W.shiftMaster))
-    -- mod-button2, Raise the window to the top of the stack
-    , ((modMask, 2), (\w -> focus w >> windows W.shiftMaster))
+    [ ((modMask, 1), \w -> focus w >> mouseMoveWindow w >> windows W.shiftMaster)
+    -- mod-button2, Sink the window back into tiling
+    , ((modMask, 2), \w -> focus w >> (windows . W.sink) w)
     -- mod-button3, Set the window to floating mode and resize by dragging
-    , ((modMask, 3), (\w -> focus w >> mouseResizeWindow w >> windows W.shiftMaster))
+    , ((modMask, 3), \w -> focus w >> mouseResizeWindow w >> windows W.shiftMaster)
     ]
 
 -- keys config
 myKeys =
   -- Spawn the essentials
-  [ ("M-b", spawn $ myBrowser)
-  , ("M-e", spawn $ myEditor)
+  [ ("M-b", spawn myBrowser)
+  , ("M-e", spawn myEditor)
   , ("M-h", spawn $ myTerminal ++ " -e htop" )
-  , ("M-t", spawn $ myTerminal )
-  , ("M-v", spawn $ "pavucontrol" )
-  , ("M-u", spawn $ "arcolinux-logout" )
+  , ("M-t", spawn myTerminal )
+  , ("M-v", spawn "pavucontrol" )
+  , ("M-u", spawn "arcolinux-logout" )
+  , ("M-q", spawn $ myTerminal ++ " -e qalc" )
 
   -- Rofi
-  , ("M-r", spawn $ "rofi -show run" )
-  , ("M-s", spawn $ "rofi -show ssh" )
-  , ("M-w", spawn $ "rofi -show window -config ~/.config/rofi/themes/center.rasi" )
+  -- , ("M-r", spawn "rofi -show run -config ~/.config/rofi/dmenu_config.rasi" )
+  , ("M-r", spawn "rofi -show run" )
+  , ("M-s", spawn "rofi -show ssh" )
+  , ("M-w", spawn "rofi -show window")
+  , ("M-o", spawn "fsearch")
+  , ("M-p", spawn "rofi-pass")
+  , ("M-C-w", spawn "networkmanager_dmenu")
+
+  -- Open emacs everywhere
+  , ("M-C-e", spawn "~/.emacs_everywhere/bin/run")
 
   -- Xmonad
-  , ("M-S-r", spawn $ "xmonad --recompile && xmonad --restart")
+  , ("M-S-r", spawn "xmonad --recompile && xmonad --restart")
 
   -- Layouts
-  , ("M-<Space>", sendMessage NextLayout)
+  -- , ("M-<Space>", sendMessage NextLayout)
   , ("M-f", sendMessage $ Toggle NBFULL)
+  , ("M-C-f", toggleFull)
+
+  -- Toggle between last workspace
+  , ("M-<Space>", toggleWS)
 
   -- Windows
   , ("M-x", kill)
-  , ("M-q", kill)
   , ("M-c", nextScreen)
   , ("M-y", prevScreen)
 
@@ -159,19 +179,19 @@ myKeys =
   , ("M-S-m", windows W.swapMaster)
 
   -- Change window size
-  , ("M-l", sendMessage Shrink)
-  , ("M-i", sendMessage Expand)
+  , ("M-<Left>", sendMessage Shrink)
+  , ("M-<Right>", sendMessage Expand)
 
   -- Media keys
-  , ("<XF86AudioMute>", spawn $ "amixer -q set Master toggle")
-  , ("<XF86AudioLowerVolume>", spawn $ "amixer -q set Master 5%-")
-  , ("<XF86AudioRaiseVolume>", spawn $ "amixer -q set Master 5%+")
-  , ("<XF86MonBrightnessUp>",  spawn $ "xbacklight -inc 5")
-  , ("<XF86MonBrightnessDown>", spawn $ "xbacklight -dec 5")
-  , ("<XF86AudioPlay>", spawn $ "playerctl play-pause")
-  , ("<XF86AudioNext>", spawn $ "playerctl next")
-  , ("<XF86AudioPrev>", spawn $ "playerctl previous")
-  , ("<XF86AudioStop>", spawn $ "playerctl stop")
+  , ("<XF86AudioMute>", spawn "amixer -q set Master toggle")
+  , ("<XF86AudioLowerVolume>", spawn "amixer -q set Master 5%-")
+  , ("<XF86AudioRaiseVolume>", spawn "amixer -q set Master 5%+")
+  , ("<XF86MonBrightnessUp>",  spawn "xbacklight -inc 5")
+  , ("<XF86MonBrightnessDown>", spawn "xbacklight -dec 5")
+  , ("<XF86AudioPlay>", spawn "playerctl play-pause")
+  , ("<XF86AudioNext>", spawn "playerctl next")
+  , ("<XF86AudioPrev>", spawn "playerctl previous")
+  , ("<XF86AudioStop>", spawn "playerctl stop")
 
   ---------------------------------------------------------
   -- LEADER KEY SEQUENCES
@@ -180,24 +200,24 @@ myKeys =
   , ("M-g w i", sendMessage (IncMasterN 1))
   , ("M-g w d", sendMessage (IncMasterN (-1)))
   -- Setting apps => <leader> s -
-  , ("M-g s t", spawn $ "arcolinux-tweak-tool")
-  , ("M-g s m", spawn $ "xfce4-settings-manager")
+  , ("M-g s t", spawn "arcolinux-tweak-tool")
+  , ("M-g s m", spawn "xfce4-settings-manager")
   -- Open generic apps => <leader> o -
-  , ("M-g o d", spawn $ "discord --no-sandbox")
-  , ("M-g o t", spawn $ "thunar")
-  , ("M-g o f", spawn $ "firefox")
-  , ("M-g o g", spawn $ "google-chrome-stable")
-  , ("M-g o n", spawn $ "nitrogen")
-  , ("M-g o m", spawn $ "pamac-manager")
-  , ("M-g o s", spawn $ "spotify")
+  , ("M-g o d", spawn "discord --no-sandbox")
+  , ("M-g o t", spawn "thunar")
+  , ("M-g o f", spawn "firefox")
+  , ("M-g o g", spawn "google-chrome-stable")
+  , ("M-g o n", spawn "nitrogen")
+  , ("M-g o m", spawn "pamac-manager")
+  , ("M-g o s", spawn "spotify")
   -- Toggles => <leader> t -
-  , ("M-g t m", spawn $ "amixer set Capture toggle")
-  , ("M-g t p", spawn $ "$HOME/.xmonad/scripts/picom-toggle.sh")
+  , ("M-g t m", spawn "amixer set Capture toggle")
+  , ("M-g t p", spawn "$HOME/.xmonad/scripts/picom-toggle.sh")
 
   --SCREENSHOTS
-  , ("<Print>", spawn $ "flameshot gui")
-  , ("C-<Print>", spawn $ "escrotum -C -s" )
-  , ("C-S-<Print>", spawn $ "escrotum -C -s" )
+  , ("<Print>", spawn "flameshot gui")
+  , ("C-<Print>", spawn "escrotum -C -s" )
+  , ("C-S-<Print>", spawn "escrotum -C -s" )
   ]
   ++
   -- mod-[1..9], Switch to workspace N
@@ -205,52 +225,6 @@ myKeys =
   [("M-" ++ m ++ k, windows $ f i)
    | (i, k) <- zip myWorkspaces ["1","2","3","4","5","6","7","8","9","0"]
       , (f, m) <- [(W.greedyView, ""), (W.shift, "C-")]]
-  ++
-  -- Copy and paste
-  [ ("<XF86Copy>", clipboardCopy)
-  , ("<XF86Paste>", clipboardPaste)]
-  where
-    clipboardCopy :: X ()
-    clipboardCopy =
-      withFocused $ \w -> do
-        b <- usesClipKeys w
-        if b
-          then (sendKey noModMask xF86XK_Copy)
-          else (sendKey controlMask xK_c)
-
-    clipboardPaste :: X ()
-    clipboardPaste =
-      withFocused $ \w -> do
-        b <- usesClipKeys w
-        if b
-          then (sendKey noModMask xF86XK_Paste)
-          else (sendKey controlMask xK_v)
-
-    usesClipKeys :: Window -> X Bool
-    usesClipKeys =
-      fmap (\n -> elem n clipKeyApps) . runQuery className
-
-    clipKeyApps :: [ String ]
-    clipKeyApps = [ "Alacritty", "Emacs" ]
-
-
--- Xmobar config
-myLogPP :: DLog.PP
-myLogPP = DLog.defaultPP
-    { DLog.ppCurrent = DLog.xmobarColor "#98be65" "" . DLog.wrap "[" "]" -- Current workspace in xmobar
-    , DLog.ppVisible = DLog.xmobarColor "#98be65" ""                -- Visible but not current workspace
-    , DLog.ppHidden = DLog.xmobarColor "#82AAFF" "" . DLog.wrap "*" ""   -- Hidden workspaces in xmobar
-    , DLog.ppHiddenNoWindows = DLog.xmobarColor "#c792ea" ""        -- Hidden workspaces (no windows)
-    , DLog.ppTitle = DLog.xmobarColor "#b3afc2" "" . DLog.shorten 60     -- Title of active window in xmobar
-    , DLog.ppSep =  "<fc=#666666> | </fc>"          -- Separators in xmobar
-    , DLog.ppUrgent = DLog.xmobarColor "#C45500" "" . DLog.wrap ">" "<"  -- Urgent workspace
-    }
-
-barCreator :: Bars.DynamicStatusBar
-barCreator (S sid) = spawnPipe $ "xmobar --screen " ++ show sid
-
-barDestroyer :: Bars.DynamicStatusBarCleanup
-barDestroyer = return ()
 
 main :: IO ()
 main = do
@@ -264,12 +238,12 @@ main = do
       myBaseConfig
         { startupHook = myStartupHook
         , layoutHook = gaps [(U,30), (D,0), (R,0), (L,0)] $ myLayout ||| layoutHook myBaseConfig
-        , logHook = Bars.multiPP myLogPP myLogPP
         , manageHook = ( isFullscreen --> doFullFloat ) <+> manageSpawn <+> myManageHook <+> manageHook myBaseConfig
+        , logHook = updatePointer (0.5, 0.5) (0, 0)
         , modMask = myModMask
         , borderWidth = myBorderWidth
         , terminal = myTerminal
-        , handleEventHook    = handleEventHook myBaseConfig <+> fullscreenEventHook <+> Bars.dynStatusBarEventHook barCreator barDestroyer
+        , handleEventHook    = handleEventHook myBaseConfig <+> fullscreenEventHook
         , focusFollowsMouse = myFocusFollowsMouse
         , workspaces = myWorkspaces
         , focusedBorderColor = focdBord
