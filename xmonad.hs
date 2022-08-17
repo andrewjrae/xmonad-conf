@@ -7,6 +7,7 @@ import XMonad.Hooks.SetWMName
 -- import qualified XMonad.Hooks.DynamicBars as Bars
 import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.EwmhDesktops
+import XMonad.Hooks.WindowSwallowing
 import XMonad.Hooks.ManageHelpers(doFullFloat, doCenterFloat, isFullscreen, isDialog)
 import XMonad.Config.Desktop
 import XMonad.Util.Run(spawnPipe)
@@ -43,9 +44,9 @@ import qualified DBus.Client as D
 
 
 myStartupHook = do
-    spawn "$HOME/.xmonad/scripts/autostart.sh"
+    -- spawn "$HOME/.xmonad/scripts/autostart.sh"
+    spawn "/etc/local/scripts/autostart.sh"
     setWMName "LG3D"
-    -- Bars.dynStatusBarStartup barCreator barDestroyer
 
 -- colours
 normBord :: String
@@ -66,7 +67,7 @@ myEditor :: String
 myEditor = "emacsclient -c -a emacs"
 
 myBrowser :: String
-myBrowser = "brave"
+myBrowser = "firefox"
 
 myModMask :: KeyMask
 myModMask = mod4Mask
@@ -132,8 +133,8 @@ myKeys =
   , ("M-e", spawn myEditor)
   , ("M-h", spawn $ myTerminal ++ " -e htop" )
   , ("M-t", spawn myTerminal )
-  , ("M-v", spawn "pavucontrol" )
-  , ("M-u", spawn "arcolinux-logout" )
+  -- , ("M-v", spawn "pavucontrol" )
+  , ("M-u", spawn "archlinux-logout" )
   , ("M-q", spawn $ myTerminal ++ " -e qalc" )
 
   -- Rofi
@@ -172,15 +173,17 @@ myKeys =
   , ("M-m", windows W.focusMaster)
 
   -- Window swapping for both qwerty and rsthd
-  , ("M-S-j", windows W.swapDown)
-  , ("M-S-n", windows W.swapDown)
-  , ("M-S-k", windows W.swapUp)
-  , ("M-S-a", windows W.swapUp)
-  , ("M-S-m", windows W.swapMaster)
+  , ("M-C-j", windows W.swapDown)
+  , ("M-C-n", windows W.swapDown)
+  , ("M-C-k", windows W.swapUp)
+  , ("M-C-a", windows W.swapUp)
+  , ("M-C-m", windows W.swapMaster)
 
   -- Change window size
   , ("M-<Left>", sendMessage Shrink)
   , ("M-<Right>", sendMessage Expand)
+  , ("M-<Up>", sendMessage (IncMasterN (-1)))
+  , ("M-<Down>", sendMessage (IncMasterN 1))
 
   -- Media keys
   , ("<XF86AudioMute>", spawn "amixer -q set Master toggle")
@@ -226,6 +229,8 @@ myKeys =
    | (i, k) <- zip myWorkspaces ["1","2","3","4","5","6","7","8","9","0"]
       , (f, m) <- [(W.greedyView, ""), (W.shift, "C-")]]
 
+myHandleEventHook = swallowEventHook (className =? "Alacritty") (return True)
+
 main :: IO ()
 main = do
 
@@ -234,7 +239,7 @@ main = do
     D.requestName dbus (D.busName_ "org.xmonad.Log")
         [D.nameAllowReplacement, D.nameReplaceExisting, D.nameDoNotQueue]
 
-    xmonad . ewmh $
+    xmonad . ewmhFullscreen . ewmh $
       myBaseConfig
         { startupHook = myStartupHook
         , layoutHook = gaps [(U,30), (D,0), (R,0), (L,0)] $ myLayout ||| layoutHook myBaseConfig
@@ -243,7 +248,7 @@ main = do
         , modMask = myModMask
         , borderWidth = myBorderWidth
         , terminal = myTerminal
-        , handleEventHook    = handleEventHook myBaseConfig <+> fullscreenEventHook
+        , handleEventHook    = myHandleEventHook <+> handleEventHook myBaseConfig
         , focusFollowsMouse = myFocusFollowsMouse
         , workspaces = myWorkspaces
         , focusedBorderColor = focdBord

@@ -19,6 +19,7 @@ autorandr --change
 
 #starting utility applications at boot time
 /etc/local/scripts/polybar_launch.sh
+/etc/local/scripts/wacom-setup.sh
 # run nm-applet &
 # run pamac-tray &
 # run xfce4-power-manager &
